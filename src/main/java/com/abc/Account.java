@@ -1,73 +1,81 @@
 package com.abc;
 
+import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
-public class Account {
+public abstract class Account
+{
+	public List<Transaction> transactions = new ArrayList<Transaction>();
 
-    public static final int CHECKING = 0;
-    public static final int SAVINGS = 1;
-    public static final int MAXI_SAVINGS = 2;
+	public void deposit( double amount )
+	{
+		if( amount <= 0 )
+		{
+			throw new IllegalArgumentException( "amount must be greater than zero" );
+		}
+		else
+		{
+			transactions.add( new Transaction( amount ) );
+		}
+	}
 
-    private final int accountType;
-    public List<Transaction> transactions;
+	public void withdraw( double amount )
+	{
+		if( amount <= 0 )
+		{
+			throw new IllegalArgumentException( "amount must be greater than zero" );
+		}
+		else if( sumTransactions() < amount )
+		{
+			throw new IllegalArgumentException( "cannot withdraw more than in the account" );
+		}
+		else
+		{
+			transactions.add( new Transaction( -amount ) );
+		}
+	}
 
-    public Account(int accountType) {
-        this.accountType = accountType;
-        this.transactions = new ArrayList<Transaction>();
-    }
+	public double sumTransactions()
+	{
+		double amount = 0.0;
+		for( Transaction t : transactions )
+		{
+			amount += t.getAmount();
+		}
+		return amount;
+	}
 
-    public void deposit(double amount) {
-        if (amount <= 0) {
-            throw new IllegalArgumentException("amount must be greater than zero");
-        } else {
-            transactions.add(new Transaction(amount));
-        }
-    }
+	public Transaction getLastWithdrawal()
+	{
+		for( int i = transactions.size() - 1; i >= 0; i-- )
+		{
+			Transaction trans = transactions.get( i );
+			if( trans.getAmount() < 0 )
+			{
+				return trans;
+			}
+		}
+		return null;
+	}
 
-public void withdraw(double amount) {
-    if (amount <= 0) {
-        throw new IllegalArgumentException("amount must be greater than zero");
-    } else {
-        transactions.add(new Transaction(-amount));
-    }
-}
+	public boolean withdrawalsLastTenDays()
+	{
+		// get the last transaction
+		Transaction lastWithdrawal = getLastWithdrawal();
+		if( lastWithdrawal == null )
+		{
+			return false;
+		}
 
-    public double interestEarned() {
-        double amount = sumTransactions();
-        switch(accountType){
-            case SAVINGS:
-                if (amount <= 1000)
-                    return amount * 0.001;
-                else
-                    return 1 + (amount-1000) * 0.002;
-//            case SUPER_SAVINGS:
-//                if (amount <= 4000)
-//                    return 20;
-            case MAXI_SAVINGS:
-                if (amount <= 1000)
-                    return amount * 0.02;
-                if (amount <= 2000)
-                    return 20 + (amount-1000) * 0.05;
-                return 70 + (amount-2000) * 0.1;
-            default:
-                return amount * 0.001;
-        }
-    }
+		Calendar cal = Calendar.getInstance();
+		cal.add( Calendar.DATE, -11 );
 
-    public double sumTransactions() {
-       return checkIfTransactionsExist(true);
-    }
+		return lastWithdrawal.getTransactionDate().after( new Date( cal.getTimeInMillis() ) );
+	}
 
-    private double checkIfTransactionsExist(boolean checkAll) {
-        double amount = 0.0;
-        for (Transaction t: transactions)
-            amount += t.amount;
-        return amount;
-    }
+	public abstract String getAccountType();
 
-    public int getAccountType() {
-        return accountType;
-    }
-
+	public abstract double interestEarned();
 }
